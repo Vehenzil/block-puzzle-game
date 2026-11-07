@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Block Puzzle</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;background:#101426;color:white;
+  font-family:Arial,sans-serif;text-align:center;
+  padding:18px 10px;
+}
+h1{color:#63e6ff;margin:12px}
+.score{display:flex;justify-content:center;gap:35px;margin:20px}
+.score div{background:#202b46;padding:12px 22px;border-radius:12px}
+.score strong{display:block;font-size:25px;color:#63e6ff}
+#board{
+  display:grid;grid-template-columns:repeat(10,1fr);
+  gap:3px;width:min(94vw,420px);margin:20px auto;
+  background:#26334f;padding:5px;border-radius:10px;
+}
+.cell{aspect-ratio:1;background:#172139;border-radius:4px}
+.cell.filled{background:var(--c)}
+#pieces{display:flex;justify-content:space-around;gap:8px;
+  max-width:420px;margin:20px auto}
+.piece{background:#202b46;border:2px solid transparent;
+  border-radius:10px;padding:10px;min-width:29%;
+  min-height:90px;display:grid;place-content:center;
+  gap:3px;cursor:pointer}
+.piece.selected{border-color:#63e6ff}
+.minirow{display:flex;justify-content:center;gap:3px}
+.mini{width:19px;height:19px;border-radius:3px}
+button{border:0;border-radius:12px;padding:13px 22px;
+  font-weight:bold;font-size:15px;cursor:pointer}
+#restart{background:#63e6ff;color:#101426}
+#message{min-height:25px;color:#ffe17a;margin:12px}
+</style>
+</head>
+<body>
+
+<h1>🧩 BLOCK PUZZLE</h1>
+<p>Fit the blocks. Clear the lines. Beat your record!</p>
+
+<div class="score">
+  <div>SCORE<strong id="score">0</strong></div>
+  <div>BEST<strong id="best">0</strong></div>
+</div>
+
+<div id="board"></div>
+<p>Choose a block, then tap the board to place it.</p>
+<div id="pieces"></div>
+<div id="message">Let's play! 🔥</div>
+<button id="restart" onclick="startGame()">NEW GAME ↻</button>
+
+<script>
+const shapes=[
+ [[0,0]],
+ [[0,0],[0,1]],
+ [[0,0],[0,1],[0,2]],
+ [[0,0],[1,0],[2,0]],
+ [[0,0],[0,1],[1,0],[1,1]],
+ [[0,0],[1,0],[1,1]],
+ [[0,0],[0,1],[1,1]],
+ [[0,0],[1,0],[2,0],[2,1]],
+ [[0,0],[0,1],[0,2],[1,1]],
+ [[0,0],[1,0],[2,0],[3,0]],
+ [[0,0],[0,1],[0,2],[0,3]],
+ [[0,0],[1,0],[2,0],[0,1],[1,1],[2,1]],
+ [[0,0],[0,1],[1,0],[1,1],[2,0],[2,1]]
+];
+const colors=["#ff5964","#45caff","#a78bfa","#ffe066",
+ "#55df9b","#ff9c55","#f472b6"];
+let board,score,best,selected,pieces,used;
+const boardEl=document.getElementById("board");
+const piecesEl=document.getElementById("pieces");
+function startGame(){
+ board=Array.from({length:10},()=>Array(10).fill(null));
+ score=0;selected=-1;
+ best=Number(localStorage.getItem("blockBest")||0);
+ newPieces();draw();
+ document.getElementById("message").textContent="Let's play! 🔥";
+}
+function newPieces(){
+ pieces=Array.from({length:3},()=>({
+  shape:shapes[Math.floor(Math.random()*shapes.length)],
+  color:colors[Math.floor(Math.random()*colors.length)]
+ }));
+ used=[false,false,false];selected=-1;
+}
+function draw(){
+ document.getElementById("score").textContent=score;
+ document.getElementById("best").textContent=best;
+ boardEl.innerHTML="";
+ for(let r=0;r<10;r++)for(let c=0;c<10;c++){
+  const el=document.createElement("div");
+  el.className="cell"+(board[r][c]?" filled":"");
+  if(board[r][c])el.style.setProperty("--c",board[r][c]);
+  el.onclick=()=>place(r,c);
+  boardEl.appendChild(el);
+ }
+ piecesEl.innerHTML="";
+ pieces.forEach((p,i)=>{
+  const el=document.createElement("div");
+  el.className="piece"+(selected===i?" selected":"");
+  if(used[i]){el.style.opacity=".25";el.textContent="Used";}
+  else{
+   el.onclick=()=>{selected=i;draw();};
+   const width=Math.max(...p.shape.map(x=>x[1]))+1;
+   const height=Math.max(...p.shape.map(x=>x[0]))+1;
+   for(let r=0;r<height;r++){
+    const row=document.createElement("div");
+    row.className="minirow";
+    for(let c=0;c<width;c++){
+     const m=document.createElement("div");
+     m.className="mini";
+     if(p.shape.some(x=>x[0]===r&&x[1]===c))
+       m.style.background=p.color;
+     else m.style.visibility="hidden";
+     row.appendChild(m);
+    }
+    el.appendChild(row);
+   }
+  }
+  piecesEl.appendChild(el);
+ });
+}
+function place(r,c){
+ if(selected<0||used[selected])return;
+ const p=pieces[selected];
+ for(const [dr,dc] of p.shape){
+  if(r+dr>=10||c+dc>=10||board[r+dr][c+dc]){
+   document.getElementById("message").textContent="That block doesn't fit!";
+   return;
+  }
+ }
+ for(const [dr,dc] of p.shape)board[r+dr][c+dc]=p.color;
+ score+=p.shape.length;
+ used[selected]=true;selected=-1;
+ let rows=[],cols=[];
+ for(let i=0;i<10;i++){
+  if(board[i].every(Boolean))rows.push(i);
+  if(board.every(row=>row[i]))cols.push(i);
+ }
+ for(const r of rows)board[r]=Array(10).fill(null);
+ for(const c of cols)for(let r=0;r<10;r++)board[r][c]=null;
+ score+=(rows.length+cols.length)*10;
+ if(score>best){
+  best=score;localStorage.setItem("blockBest",best);
+ }
+ document.getElementById("message").textContent=
+  rows.length+cols.length>0?"Amazing! Lines cleared! 🎉":"Nice move!";
+ if(used.every(Boolean))newPieces();
+ draw();
+ if(!canPlay()){
+  document.getElementById("message").textContent=
+   "Game over! Your score: "+score;
+ }
+}
+function canPlay(){
+ return pieces.some((p,i)=>!used[i]&&
+  p.shape.some(()=>true)&&fitsSomewhere(p));
+}
+function fitsSomewhere(p){
+ for(let r=0;r<10;r++)for(let c=0;c<10;c++){
+  if(p.shape.every(([dr,dc])=>
+   r+dr<10&&c+dc<10&&!board[r+dr][c+dc]))return true;
+ }
+ return false;
+}
+startGame();
+</script>
+</body>
+</html>
