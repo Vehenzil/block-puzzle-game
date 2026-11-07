@@ -2,6 +2,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#101426">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Block Puzzle</title>
@@ -170,6 +172,16 @@ function fitsSomewhere(p){
  return false;
 }
 startGame();
+ <script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js");
+  });
+}
+</script>
+
+</body>
+</html> 
 </script>
 </body>
 </html>
