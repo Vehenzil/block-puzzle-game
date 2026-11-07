@@ -1,0 +1,8 @@
+{
+  "name": "Block Puzzle",
+  "short_name": "Block Puzzle",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#101426",
+  "theme_color": "#101426"
+}
